@@ -38,7 +38,7 @@ get_trmnl_image() {
     logger "JSON: ${SHORT_JSON}..."
 
     # Parse JSON (naive sed approach)
-    local IMAGE_URL=$(echo "$RESPONSE" | sed -n 's/.*"image_url":"\([^"]*\)".*/\1/p' | sed 's/\\u0026/\&/g')
+    local IMAGE_URL=$(echo "$RESPONSE" | sed -n 's/.*"image_url":"\([^"]*\)".*/\1/p' | sed 's/\\u0026/\&/g' | sed 's/\\//g')
     logger "TRMNL_IMAGE_URL: ${IMAGE_URL}"
 
     local REFRESH_RATE=$(echo "$RESPONSE" | sed -n 's/.*"refresh_rate":\([^,}]*\).*/\1/p')
