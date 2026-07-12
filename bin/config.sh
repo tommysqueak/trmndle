@@ -7,7 +7,7 @@
 # update fails, the script is not updating again until INTERVAL minutes have
 # passed again. So chose a good compromise between updating often (to make
 # sure you always have the latest image) and rarely (to not waste battery).
-DEFAULTINTERVAL=30
+DEFAULTINTERVAL=5
 
 # Schedule for updating the screensaver. Use checkschedule.sh to check whether
 # the format is correctly understood. 
@@ -53,3 +53,6 @@ LOGFILE=/mnt/us/extensions/onlinescreensaver/log/onlinescreensaver.log
 
 # the temporary file to download the screensaver image to
 TMPFILE=/tmp/tmp.onlinescreensaver.png
+
+TRMNL_BASE_URL=
+TRMNL_API_KEY=
