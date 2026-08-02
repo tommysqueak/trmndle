@@ -10,11 +10,20 @@ if [ -e "config.sh" ]; then
 else
     TMPFILE=/tmp/tmp.onlinescreensaver.png
 fi
+
 # load utils
 if [ -e "utils.sh" ]; then
     source ./utils.sh
 else
     echo "Could not find utils.sh in `pwd`"
+    exit
+fi
+
+# load trmnl utils
+if [ -e "trmnl.sh" ]; then
+    source ./trmnl.sh
+else
+    echo "Could not find trmnl.sh in `pwd`"
     exit
 fi
 
@@ -32,7 +41,9 @@ logger "WiFi connection state: $WIFI_CONNECTION"
 POWERD_OUTPUT=`/usr/bin/powerd_test -s`
 batteryLevel=`echo "$POWERD_OUTPUT" | awk -F: '/Battery Level/ {print substr($2, 1, length($2)-1) + 0}'`
 isCharging=`echo "$POWERD_OUTPUT" | awk -F: '/Charging/ {print substr($2,2,length($2))}'`
-IMAGE_URI_WITH_PARAMS="$IMAGE_URI?batteryLevel=$batteryLevel&isCharging=$isCharging"
+
+# Insert Trmnl call here. Trmnl roundtrup - Call Trmnl -> get image url -> continue as usual with that image url 
+IMAGE_URI_WITH_PARAMS="$(get_trmnl_image)"
 
 # Capture wget output and exit code for detailed logging
 WGET_OUTPUT=$(wget --no-check-certificate -q $IMAGE_URI_WITH_PARAMS -O $TMPFILE 2>&1)
