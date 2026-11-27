@@ -1,0 +1,25 @@
+#!/bin/sh
+. "$(dirname "$0")/helpers.sh"
+. "$(dirname "$0")/sandbox.sh"
+
+new_sandbox
+
+cat > "$SB/lipc.txt" <<'EOF'
+com.lab126.powerd status=Battery Level: 87% Charging: false
+EOF
+cat > "$SB/response.json" <<'EOF'
+{"image_url":"https:\/\/images.example\/p.png\u0026v=2","refresh_rate":"120","filename":"p.png"}
+EOF
+export STUB_CURL_BODY_FILE="$SB/response.json"
+
+out=$(cd "$SB" && . ./config.sh && . ./utils.sh && . ./trmnl.sh && get_trmnl_image)
+
+assert_eq "unescapes returned image_url" "https://images.example/p.png&v=2" "$out"
+stub_called "png-width/screen-width is passed to api (landscape swap)" "png-width: 1024"
+stub_called "png-height/screen-height is passed to api (landscape swap)" "png-height: 758"
+stub_called "battery percent passed to api" "percent-charged: 87"
+stub_called "access-token passed to api" "access-token: test-key"
+stub_called "Device ID (mac address) passed to api" "ID: AA:BB:CC:DD:EE:FF"
+
+drop_sandbox
+summary

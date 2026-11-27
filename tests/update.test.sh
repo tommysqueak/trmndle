@@ -1,0 +1,81 @@
+#!/bin/sh
+. "$(dirname "$0")/helpers.sh"
+. "$(dirname "$0")/sandbox.sh"
+
+API_JSON='{"image_url":"http://image.example/img.png","refresh_rate":"600"}'
+
+run_update () {
+    ( cd "$SB" && sh ./update.sh )
+}
+
+new_sandbox
+printf 'PNGDATA-FOR-TEST' > "$SB/image_body"
+
+# A: two-step flow while screen saver active
+cat > "$SB/lipc.txt" <<'EOF'
+com.lab126.powerd status=Battery Level: 85% Charging: false Screen Saver: active
+com.lab126.wifid cmState=CONNECTED
+com.lab126.volumd userstoreIsAvailable=1
+EOF
+printf '%s' "$API_JSON" > "$SB/response.json"
+export STUB_CURL_BODY_FILE="$SB/response.json"
+export STUB_WGET_BODY_FILE="$SB/image_body"
+
+run_update >/dev/null 2>&1
+
+assert_contains "image written to SCREENSAVERFILE" "PNGDATA-FOR-TEST" "$(cat "$SB/screensavers/bg_ss00.png")"
+if [ -f "$SB/tmp.png" ]; then fail "temp file removed after success"; else pass; fi
+stub_count "trmnl image downloaded" "wget http://image.example/img.png" 1
+stub_called "screen refreshed via eips" "eips -f -g $SB/screensavers/bg_ss00.png"
+curl_line=$(grep -n "curl" "$STUB_LOG" | head -1 | cut -d: -f1)
+wget_line=$(grep -n "wget" "$STUB_LOG" | head -1 | cut -d: -f1)
+if [ -n "$curl_line" ] && [ -n "$wget_line" ] && [ "$curl_line" -lt "$wget_line" ]; then pass; else fail "api call precedes image download"; fi
+drop_sandbox
+
+# B: image still written when device is active (no screen refresh)
+new_sandbox
+printf 'PNGDATA-FOR-TEST' > "$SB/image_body"
+printf '%s' "$API_JSON" > "$SB/response.json"
+export STUB_CURL_BODY_FILE="$SB/response.json"
+export STUB_WGET_BODY_FILE="$SB/image_body"
+
+run_update >/dev/null 2>&1
+
+assert_contains "image written while active" "PNGDATA-FOR-TEST" "$(cat "$SB/screensavers/bg_ss00.png")"
+stub_count "no eips refresh while active" "eips -f -g" 0
+drop_sandbox
+
+# C: download failure keeps old image and logs the exit code
+new_sandbox
+printf 'OLDDATA' > "$SB/screensavers/bg_ss00.png"
+printf '%s' "$API_JSON" > "$SB/response.json"
+export STUB_CURL_BODY_FILE="$SB/response.json"
+export STUB_WGET_MODE=fail
+export STUB_WGET_CODE=4
+
+run_update >/dev/null 2>&1
+
+assert_contains "old image kept on wget failure" "OLDDATA" "$(cat "$SB/screensavers/bg_ss00.png")"
+if [ -f "$SB/tmp.png" ]; then fail "incomplete temp file cleaned up"; else pass; fi
+assert_contains "wget exit code logged" "wget failed with exit code 4" "$(cat "$SB/test.log")"
+drop_sandbox
+
+# D: empty API response - download attempted with empty url, old image kept
+new_sandbox
+printf 'OLDDATA' > "$SB/screensavers/bg_ss00.png"
+export STUB_CURL_BODY=""
+
+run_update >/dev/null 2>&1
+
+assert_contains "old image kept on empty api response" "OLDDATA" "$(cat "$SB/screensavers/bg_ss00.png")"
+stub_count "download attempted with empty url" "wget  ->" 1
+drop_sandbox
+
+# E: no IMAGE_URI configured - nothing downloaded
+new_sandbox
+write_config "IMAGE_URI="
+out=$( ( cd "$SB" && sh -c '. ./update.sh' ) 2>/dev/null )
+stub_count "no downloads when IMAGE_URI unset" "wget" 0
+drop_sandbox
+
+summary
