@@ -2,7 +2,7 @@
 . "$(dirname "$0")/helpers.sh"
 . "$(dirname "$0")/sandbox.sh"
 
-API_JSON='{"image_url":"http://image.example/img.png","refresh_rate":"600"}'
+API_JSON='{"status":0,"image_url":"http:\/\/image.example\/img.png","filename":"screen-a0f848-1795105057","refresh_rate":900,"reset_firmware":false,"update_firmware":false,"firmware_url":null,"special_function":"sleep","maximum_compatibility":false,"image_url_timeout":30}'
 
 run_update () {
     ( cd "$SB" && sh ./update.sh )
