@@ -10,76 +10,82 @@ get_trmnl_image() {
     logger "No TRMNL_BASE_URL provided. Add to config.sh."
   fi
 
-  local MAC_ADDRESS=$(cat /sys/class/net/wlan0/address | tr '[:lower:]' '[:upper:]')
-  local BATTERY_VOLTAGE=$(get_kindle_battery)
+  local mac_address=$(cat /sys/class/net/wlan0/address | tr a-z A-Z)
 
-  # Size of the PNG in *pixels*
-  local PNG_WIDTH=$(get_kindle_height)
-  local PNG_HEIGHT=$(get_kindle_width)
+  local battery_percent=$(get_kindle_battery)
 
-  local RESPONSE="$(
-  curl -s \
+  # Request the size of the PNG in *pixels* that will martcht the kindles resolution
+  local png_width=$(get_kindle_height)
+  local png_height=$(get_kindle_width)
+
+  local trmnl_response="$(
+  curl -sL \
       -H "access-token: $TRMNL_API_KEY" \
-      -H "battery-voltage: $BATTERY_VOLTAGE" \
-      -H "png-width: $PNG_WIDTH" \
-      -H "png-height: $PNG_HEIGHT" \
+      -H "percent-charged: $battery_percent" \
+      -H "png-width: $png_width" \
+      -H "png-height: $png_height" \
       -H "rssi: 0" \
-      -H "ID: $MAC_ADDRESS" \
-      -A "trmnl-display/0.1.1" \
+      -H "ID: $mac_address" \
+      -A "trmnl-kindle/0.1.1" \
       "${TRMNL_BASE_URL}/api/display"
   )"
 
-  if [ -z "$RESPONSE" ]; then
+  if [ -z "$trmnl_response" ]; then
     logger "Error: No JSON response."
     # TODO: serve a default broken image?
   else
     # Show part of the JSON in debug (trim if it's too long)
-    local SHORT_JSON="$(echo "$RESPONSE" | cut -c1-60)"
-    logger "JSON: ${SHORT_JSON}..."
+    local short_json="$(echo "$trmnl_response" | cut -c1-60)"
+    logger "JSON: ${short_json}..."
 
     # Parse JSON (naive sed approach)
-    local IMAGE_URL=$(echo "$RESPONSE" | sed -n 's/.*"image_url":"\([^"]*\)".*/\1/p' | sed 's/\\u0026/\&/g' | sed 's/\\//g')
-    logger "TRMNL_IMAGE_URL: ${IMAGE_URL}"
+    local image_url=$(echo "$trmnl_response" | sed -n 's/.*"image_url":"\([^"]*\)".*/\1/p' | sed 's/\\u0026/\&/g' | sed 's/\\//g')
 
-    local REFRESH_RATE=$(echo "$RESPONSE" | sed -n 's/.*"refresh_rate":\([^,}]*\).*/\1/p')
-    [ -z "$REFRESH_RATE" ] && REFRESH_RATE="60"
+    logger "TRMNL_image_url: ${image_url}"
+
+    local min_refresh_rate=300
+
+    local refresh_rate=$(echo "$trmnl_response" | sed -n 's/.*"refresh_rate":\([^,}]*\).*/\1/p' | tr -d ' "')
+    # API range is 60..86400, so 6+ digits is out of range; rejecting it also stops a bogus
+    # value from overflowing the comparison below and parking the wake alarm decades away
+    case "$refresh_rate" in ''|*[!0-9]*|??????*) refresh_rate=0 ;; esac
+    [ "$refresh_rate" -lt "$min_refresh_rate" ] && refresh_rate="$min_refresh_rate"
+
+
     # TOOD: is it possible to override the configured schedule and use Trmnls? see scheduler.sh
 
   fi
 
-  echo "$IMAGE_URL"
+  echo "$image_url"
 }
 
 get_kindle_width() {
-  # Run the command and capture its output
+
+  # fetch info about the kindle
   local result=$(eips -i)
 
-  # Extract xres using grep and awk
+  # extract the horizontal (x) resolution
   local xres=$(echo "$result" | grep "xres:" | head -1 | awk '{print $2}')
 
-  # Return just the width value
   echo "$xres"
 }
 
 get_kindle_height() {
-  # Run the command and capture its output
+  # fetch info about the kindle
   local result=$(eips -i)
 
-  # Extract yres using grep and awk
+  # extract the vertical (y) resolution
   local yres=$(echo "$result" | grep "yres:" | head -1 | awk '{print $4}')
 
-  # Return just the height value
   echo "$yres"
 }
 
 get_kindle_battery() {
-  # Run the command and capture its output
+  
   local result=$(lipc-get-prop com.lab126.powerd status)
 
-  # Extract the battery level using grep and cut
-  # Find the line with "Battery Level", extract just the percentage number
+  # Extract just the percentage
   local battery_level=$(echo "$result" | grep "Battery Level:" | cut -d ":" -f2 | tr -d '% ')
 
-  # Return just the number
   echo "$battery_level"
 }
