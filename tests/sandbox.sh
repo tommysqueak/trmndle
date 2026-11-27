@@ -6,8 +6,6 @@ STUBS="$ROOT/tests/stubs/bin"
 
 write_config () {
     cat > "$SB/config.sh" <<EOF
-DEFAULTINTERVAL=5
-SCHEDULE="00:00-07:00=30 07:00-23:00=8 23:00-24:00=30"
 IMAGE_URI="http://image.example/img.png"
 SCREENSAVERFOLDER="$SB/screensavers"
 SCREENSAVERFILE="$SB/screensavers/bg_ss00.png"

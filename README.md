@@ -55,8 +55,8 @@ The key requirement is a server that can provide PNG images in your Kindle's exa
    - You should have `extensions/onlinescreensaver/bin/update.sh` and related files present.
 
 2. Edit `onlinescreensaver/bin/config.sh` with your settings:
+   - `TRMNL_BASE_URL` / `TRMNL_API_KEY` - Your TRMNL API endpoint and access token (update frequency comes from the API's `refresh_rate`)
    - `IMAGE_URI` - Your image server URL
-   - `SCHEDULE` - Update times in "HH:MM-HH:MM=MINUTES" format
    - `SCREENSAVERFILE` - Path to your screensaver image (the default normally works with linkss)
 
    **Important:** Use an editor that supports Unix line endings (e.g., notepad++ on Windows)
@@ -66,8 +66,9 @@ The key requirement is a server that can provide PNG images in your Kindle's exa
 The main settings in `config.sh`:
 
 ```bash
-# Update schedule - different intervals for different times of day
-SCHEDULE="00:00-07:00=30 07:00-23:00=8 23:00-24:00=30"
+# TRMNL API - update frequency comes from the API's refresh_rate
+TRMNL_BASE_URL="https://trmnl.app"
+TRMNL_API_KEY="your-access-token"
 
 # Your image server URL (will receive batteryLevel and isCharging parameters)
 IMAGE_URI="http://192.168.1.100:5000"

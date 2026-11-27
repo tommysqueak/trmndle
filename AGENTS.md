@@ -54,7 +54,7 @@ The scheduler now operates purely on power state events instead of polling:
    - Performs scheduled update
 
 3. **`readyToSuspend`** - Device about to sleep
-   - Dynamically calculates seconds until next scheduled update from current time
+   - Reads the TRMNL `refresh_rate` persisted by the last update (fallback 300s)
    - Sets RTC wakeup timer using `set_rtc_wakeup_relative`
    - Critical to prevent device sleeping indefinitely
 
@@ -71,9 +71,6 @@ The scheduler now operates purely on power state events instead of polling:
 # Manual test run (connect via SSH first)
 /mnt/us/extensions/onlinescreensaver/bin/scheduler.sh &
 
-# Check schedule parsing
-/mnt/us/extensions/onlinescreensaver/bin/checkschedule.sh
-
 # Single update test
 /mnt/us/extensions/onlinescreensaver/bin/update.sh
 ```
@@ -81,7 +78,7 @@ The scheduler now operates purely on power state events instead of polling:
 ### Configuration Changes
 Edit `bin/config.sh` for:
 - `IMAGE_URI` - URL endpoint for screensaver images
-- `SCHEDULE` - Time-based update intervals in "HH:MM-HH:MM=MINUTES" format
+- Update frequency comes from the TRMNL API's `refresh_rate`; no schedule config
 
 ### Installation/Management via KUAL
 The `menu.json` defines KUAL menu items:
@@ -104,13 +101,10 @@ Logs are written to `/mnt/us/extensions/onlinescreensaver/log/onlinescreensaver.
 
 ## Recent Changes
 
-### Dynamic Schedule Refactor (Latest)
-- **MAJOR**: Replaced pre-calculated 48-hour schedule system with real-time dynamic calculation
-- Eliminated schedule expiry bug that caused fallback to 30-minute intervals after 48+ hours
-- Removed `extend_schedule()` function and all complex schedule string manipulation (~100 lines)
-- `get_seconds_until_next_update()` now calculates directly from current time + config
-- **Infinite runtime capability** - no restart needed for long-term operation
-- Maintains exact same config format and behavior, just more reliable
+### TRMNL Refresh-Rate Scheduling (Latest)
+- **MAJOR**: Removed `DEFAULTINTERVAL`/`SCHEDULE` config and `get_seconds_until_next_update()`/`checkschedule.sh`
+- `get_trmnl_image()` persists the clamped TRMNL `refresh_rate` to `refresh_rate` beside the scripts
+- `get_next_update_seconds()` reads it when setting the RTC alarm; missing/invalid falls back to 300s
 
 ### USB-Safe Logging System (Latest)
 - **MAJOR**: Hybrid logging prevents FAT corruption during USB mass storage mode
@@ -134,7 +128,7 @@ Logs are written to `/mnt/us/extensions/onlinescreensaver/log/onlinescreensaver.
 
 ### Critical Functions
 - `set_rtc_wakeup_relative(seconds)` - Sets RTC alarm for relative time from now
-- `get_seconds_until_next_update()` - **NEW**: Dynamically calculates next update from current time and schedule config
+- `get_next_update_seconds()` - Reads persisted TRMNL refresh_rate, validates, falls back to 300s
 - `do_update_cycle()` - Runs update.sh with 20-second timeout protection
 - `is_userstore_available()` - **NEW**: Detects if FAT partition is safe to write (USB state)
 - `flush_temp_logs()` - **NEW**: Safely moves RAM logs to FAT when USB disconnected

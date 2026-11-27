@@ -32,6 +32,8 @@ stub_called "battery percent passed to api" "percent-charged: 7"
 stub_called "access-token passed to api" "access-token: test-key"
 stub_called "Device ID (mac address) passed to api" "ID: AA:BB:CC:DD:EE:FF"
 
+assert_eq "persists refresh_rate for scheduler" "900" "$(cat "$SB/refresh_rate" 2>/dev/null)"
+
 # variant with query parameters, as sent for signed image urls
 cat > "$SB/response.json" <<'EOF'
 {"status":0,"image_url":"https:\/\/images.example\/p.png\u0026v=2","filename":"screen-x","refresh_rate":900,"special_function":"sleep"}
@@ -39,6 +41,14 @@ EOF
 
 out=$(cd "$SB" && . ./config.sh && . ./utils.sh && . ./trmnl.sh && get_trmnl_image)
 assert_eq "unescapes query parameters in image_url" "https://images.example/p.png&v=2" "$out"
+
+# API may send a rate below the device floor; clamped value must be persisted
+cat > "$SB/response.json" <<'EOF'
+{"status":0,"image_url":"https:\/\/images.example\/p.png","filename":"screen-y","refresh_rate":60}
+EOF
+
+out=$(cd "$SB" && . ./config.sh && . ./utils.sh && . ./trmnl.sh && get_trmnl_image)
+assert_eq "persists clamped below-floor refresh_rate" "300" "$(cat "$SB/refresh_rate" 2>/dev/null)"
 
 drop_sandbox
 summary

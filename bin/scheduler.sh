@@ -5,7 +5,7 @@
 # Battery-efficient weather screensaver scheduler for Kindle
 #
 # Features:
-#   - updates on schedule while allowing device suspension
+#   - updates at the refresh_rate returned by the TRMNL API
 #   - uses RTC wakeup to minimize battery drain
 #   - only stays awake during actual updates
 #   - handles screensaver and ready states efficiently
@@ -20,7 +20,6 @@ if [ -e "config.sh" ]; then
         source ./config.sh
 else
         # set default values
-        INTERVAL=240
         RTC=0
 fi
 
@@ -37,100 +36,15 @@ fi
 
 ##############################################################################
 
-# Calculate seconds until next update dynamically from current time and schedule
-get_seconds_until_next_update () {
-    local CURRENT_TIME=$(currentTime)
-    local CURRENT_HOUR=$(date +%H | sed 's/^0*//' | sed 's/^$/0/')
-    local CURRENT_MINUTE=$(date +%M | sed 's/^0*//' | sed 's/^$/0/')
-    local CURRENT_SECOND=$(date +%S | sed 's/^0*//' | sed 's/^$/0/')
-    
-    local CURRENT_MINUTES=$(( CURRENT_HOUR * 60 + CURRENT_MINUTE ))
-    local CURRENT_DAY_SECONDS=$(( CURRENT_HOUR * 3600 + CURRENT_MINUTE * 60 + CURRENT_SECOND ))
-    
-    logger "Current time: $(date +%H:%M:%S) ($CURRENT_MINUTES minutes from midnight)"
-    
-    # Find which schedule period we're currently in
-    for schedule in $SCHEDULE; do
-        read STARTHOUR STARTMINUTE ENDHOUR ENDMINUTE INTERVAL << EOF
-            $( echo " $schedule" | sed -e 's/[:,=,\,,,-]/ /g' -e 's/\([^0-9]\)0\([[:digit:]]\)/\1\2/g' )
-EOF
-        
-        local START_MIN=$(( STARTHOUR * 60 + STARTMINUTE ))
-        local END_MIN=$(( ENDHOUR * 60 + ENDMINUTE ))
-        
-        if [ $CURRENT_MINUTES -ge $START_MIN ] && [ $CURRENT_MINUTES -lt $END_MIN ]; then
-            # We're in this schedule period
-            logger "In schedule period: $STARTHOUR:$(printf '%02d' $STARTMINUTE)-$ENDHOUR:$(printf '%02d' $ENDMINUTE) (interval: ${INTERVAL}min)"
-            
-            local PERIOD_ELAPSED=$(( CURRENT_MINUTES - START_MIN ))
-            local COMPLETE_INTERVALS=$(( PERIOD_ELAPSED / INTERVAL ))
-            local NEXT_UPDATE_MIN=$(( START_MIN + (COMPLETE_INTERVALS + 1) * INTERVAL ))
-            
-            # If next update would be past the end of this period, use the end time
-            if [ $NEXT_UPDATE_MIN -ge $END_MIN ]; then
-                NEXT_UPDATE_MIN=$END_MIN
-            fi
-            
-            local NEXT_UPDATE_SECONDS=$(( NEXT_UPDATE_MIN * 60 ))
-            local WAIT_SECONDS=$(( NEXT_UPDATE_SECONDS - CURRENT_DAY_SECONDS ))
-            
-            # Minimum 5 minutes between updates
-            [ $WAIT_SECONDS -lt 300 ] && WAIT_SECONDS=300
-            
-            logger "Next update in $WAIT_SECONDS seconds"
-            echo $WAIT_SECONDS
-            return
-        fi
-    done
-    
-    # Not in any defined period - find next period start
-    local NEXT_START=-1
-    for schedule in $SCHEDULE; do
-        read STARTHOUR STARTMINUTE ENDHOUR ENDMINUTE INTERVAL << EOF
-            $( echo " $schedule" | sed -e 's/[:,=,\,,,-]/ /g' -e 's/\([^0-9]\)0\([[:digit:]]\)/\1\2/g' )
-EOF
-        
-        local START_MIN=$(( STARTHOUR * 60 + STARTMINUTE ))
-        
-        if [ $START_MIN -gt $CURRENT_MINUTES ]; then
-            if [ $NEXT_START -eq -1 ] || [ $START_MIN -lt $NEXT_START ]; then
-                NEXT_START=$START_MIN
-            fi
-        fi
-    done
-    
-    # If no period found after current time, use tomorrow's first period
-    if [ $NEXT_START -eq -1 ]; then
-        # Find first period of the day
-        for schedule in $SCHEDULE; do
-            read STARTHOUR STARTMINUTE ENDHOUR ENDMINUTE INTERVAL << EOF
-                $( echo " $schedule" | sed -e 's/[:,=,\,,,-]/ /g' -e 's/\([^0-9]\)0\([[:digit:]]\)/\1\2/g' )
-EOF
-            
-            local START_MIN=$(( STARTHOUR * 60 + STARTMINUTE ))
-            
-            if [ $NEXT_START -eq -1 ] || [ $START_MIN -lt $NEXT_START ]; then
-                NEXT_START=$START_MIN
-            fi
-        done
-        
-        # Add 24 hours for tomorrow
-        NEXT_START=$(( NEXT_START + 24*60 ))
+get_next_update_seconds () {
+    local MIN_REFRESH_RATE=300
+    local refresh_rate=$(cat refresh_rate 2>/dev/null)
+    case "$refresh_rate" in ''|*[!0-9]*|??????*) refresh_rate="" ;; esac
+    if [ -z "$refresh_rate" ] || [ "$refresh_rate" -lt "$MIN_REFRESH_RATE" ]; then
+        refresh_rate=$MIN_REFRESH_RATE
     fi
-    
-    local NEXT_START_SECONDS=$(( NEXT_START * 60 ))
-    local WAIT_SECONDS=$(( NEXT_START_SECONDS - CURRENT_DAY_SECONDS ))
-    
-    # Handle day wrap-around
-    if [ $WAIT_SECONDS -le 0 ]; then
-        WAIT_SECONDS=$(( WAIT_SECONDS + 24*3600 ))
-    fi
-    
-    # Minimum 5 minutes between updates
-    [ $WAIT_SECONDS -lt 300 ] && WAIT_SECONDS=300
-    
-    logger "Next update in $WAIT_SECONDS seconds (at next period start)"
-    echo $WAIT_SECONDS
+    logger "Next update in $refresh_rate seconds (TRMNL refresh_rate)"
+    echo "$refresh_rate"
 }
 
 
@@ -235,7 +149,7 @@ lipc-wait-event -m com.lab126.powerd goingToScreenSaver,wakeupFromSuspend,readyT
             ;;
         readyToSuspend*)
             logger "Ready to suspend - setting RTC wakeup timer"
-            NEXT_UPDATE_SECONDS=$(get_seconds_until_next_update)
+            NEXT_UPDATE_SECONDS=$(get_next_update_seconds)
             logger "Next update in $NEXT_UPDATE_SECONDS seconds"
             set_rtc_wakeup_relative $NEXT_UPDATE_SECONDS
             ;;

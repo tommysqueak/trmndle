@@ -4,7 +4,7 @@
 #
 # Read-only diagnostics for the onlinescreensaver extension.
 #
-# Usage: debug.sh [device|schedule|network|trmnl|files|logs|all]
+# Usage: debug.sh [device|refresh|network|trmnl|files|logs|all]
 #
 ##############################################################################
 
@@ -49,10 +49,13 @@ device_section () {
     fi
 }
 
-schedule_section () {
-    section "schedule"
-    printf 'default interval: %s minutes\n' "$DEFAULTINTERVAL"
-    printf 'schedule: %s\n' "$SCHEDULE"
+refresh_section () {
+    section "refresh"
+    if [ -f refresh_rate ]; then
+        printf 'refresh_rate: %s seconds\n' "$(cat refresh_rate)"
+    else
+        echo "no refresh_rate stored yet (no successful update)"
+    fi
     if [ ! -e "scheduler.sh" ]; then
         echo "scheduler.sh not found"
         return
@@ -71,7 +74,7 @@ schedule_section () {
     export PATH
     NEXT_UPDATE=$(sh -c '
         . ./scheduler.sh
-        get_seconds_until_next_update
+        get_next_update_seconds
     ')
     PATH=$OLDPATH
     rm -rf "$TMPBIN"
@@ -158,17 +161,17 @@ logs_section () {
 
 case "${1:-all}" in
     device)   device_section ;;
-    schedule) schedule_section ;;
+    refresh)  refresh_section ;;
     network)  network_section ;;
     trmnl)    trmnl_section ;;
     files)    files_section ;;
     logs)     logs_section ;;
     all)      device_section
-              schedule_section
+              refresh_section
               network_section
               trmnl_section
               files_section
               logs_section ;;
-    *)        printf 'usage: %s [device|schedule|network|trmnl|files|logs|all]\n' "$0" >&2
+    *)        printf 'usage: %s [device|refresh|network|trmnl|files|logs|all]\n' "$0" >&2
               exit 2 ;;
 esac

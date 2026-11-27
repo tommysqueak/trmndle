@@ -52,8 +52,8 @@ get_trmnl_image() {
     case "$refresh_rate" in ''|*[!0-9]*|??????*) refresh_rate=0 ;; esac
     [ "$refresh_rate" -lt "$min_refresh_rate" ] && refresh_rate="$min_refresh_rate"
 
-
-    # TOOD: is it possible to override the configured schedule and use Trmnls? see scheduler.sh
+    # Store for later wake-up scheduling
+    echo "$refresh_rate" > refresh_rate
 
   fi
 
