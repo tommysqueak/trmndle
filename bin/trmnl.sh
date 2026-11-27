@@ -15,8 +15,9 @@ get_trmnl_image() {
   local battery_percent=$(get_kindle_battery)
 
   # Request the size of the PNG in *pixels* that will martcht the kindles resolution
-  local png_width=$(get_kindle_height)
-  local png_height=$(get_kindle_width)
+  local png_dimensions=$(get_kindle_dimensions)
+  local png_width=${png_dimensions#* }
+  local png_height=${png_dimensions% *}
 
   local trmnl_response="$(
   curl -sL \
@@ -59,25 +60,16 @@ get_trmnl_image() {
   echo "$image_url"
 }
 
-get_kindle_width() {
+get_kindle_dimensions() {
 
   # fetch info about the kindle
   local result=$(eips -i)
 
-  # extract the horizontal (x) resolution
+  # extract resolution dimensions
   local xres=$(echo "$result" | grep "xres:" | head -1 | awk '{print $2}')
-
-  echo "$xres"
-}
-
-get_kindle_height() {
-  # fetch info about the kindle
-  local result=$(eips -i)
-
-  # extract the vertical (y) resolution
   local yres=$(echo "$result" | grep "yres:" | head -1 | awk '{print $4}')
 
-  echo "$yres"
+  echo "$xres $yres"
 }
 
 get_kindle_battery() {
