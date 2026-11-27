@@ -34,13 +34,8 @@ new_sandbox () {
     export STUB_WGET_BODY_FILE=
     export STUB_CURL_BODY=
     export STUB_CURL_BODY_FILE=
-    STUB_LIPC="$SB/lipc.txt"
-    cat > "$STUB_LIPC" <<'EOF'
-com.lab126.powerd status=Battery Level: 85% Charging: false
-com.lab126.wifid cmState=CONNECTED
-com.lab126.cmd wirelessEnable=1
-com.lab126.volumd userstoreIsAvailable=1
-EOF
+    cp -R "$ROOT/tests/stubs/lipc" "$SB/lipc"
+    STUB_LIPC="$SB/lipc"
     export STUB_LIPC
     rm -f /tmp/onlinescreensaver_new.log
     PATH="$STUBS:$PATH"
@@ -49,4 +44,8 @@ EOF
 
 drop_sandbox () {
     [ -n "$SB" ] && rm -rf "$SB"
+}
+
+set_lipc_output () {
+    cat > "$STUB_LIPC/$1__$2"
 }

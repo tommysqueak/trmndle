@@ -11,11 +11,19 @@ run_update () {
 new_sandbox
 printf 'PNGDATA-FOR-TEST' > "$SB/image_body"
 
-# A: two-step flow while screen saver active
-cat > "$SB/lipc.txt" <<'EOF'
-com.lab126.powerd status=Battery Level: 85% Charging: false Screen Saver: active
-com.lab126.wifid cmState=CONNECTED
-com.lab126.volumd userstoreIsAvailable=1
+# A: two-step flow while powerd reports Screen Saver state
+set_lipc_output com.lab126.powerd status <<'EOF'
+Powerd state: Screen Saver
+Remaining time in this state: 63.000000
+defer_suspend:0
+suspend_grace:0
+prevent_screen_saver:0
+drive_mode:off
+Battery Level: 85%
+Last batt event at: 85%
+Charging: No
+batt_full=0
+Battery logging: On
 EOF
 printf '%s' "$API_JSON" > "$SB/response.json"
 export STUB_CURL_BODY_FILE="$SB/response.json"

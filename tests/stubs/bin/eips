@@ -3,7 +3,40 @@
 echo "eips $*" >> "$STUB_LOG"
 for arg in "$@"; do
     case "$arg" in
-        -i) echo "xres: ${STUB_EIPS_XRES:-758} yres: ${STUB_EIPS_YRES:-1024}"; exit 0 ;;
+        -i)
+            X=${STUB_EIPS_XRES:-758}
+            Y=${STUB_EIPS_YRES:-1024}
+            cat <<EOF
+Fixed framebuffer info
+    id:              mxc_epdc_fb    smem_start:       0x75800000
+    smem_len:            4718592    type:          PACKED_PIXELS
+    type_aux:                  0    visual:   STATIC_PSEUDOCOLOR
+    xpanstep:                  1    ypanstep:                  1
+    ywrapstep:                 0    line_length:             768
+    mmio_start:       0x00000000    mmio_len:                  0
+    accel:                     0
+
+Variable framebuffer info
+    xres:                    $X    yres:                   $Y
+    xres_virtual:            768    yres_virtual:           6144
+    xoffset:                   0    yoffset:                   0
+    bits_per_pixel:            8    grayscale:                 1
+    red.offset:                0    green.offset:              0
+    red.length:                8    green.length:              8
+    red.msb_right:             0    green.msb_right:           0
+    blue.offset:               0    transp.offset:             0
+    blue.length:               8    transp.length:             0
+    blue.msb_right:            0    transp.msb_right:          0
+    nonstd:                    0    activate:                128
+    width:                    91    height:                  122
+    accel_flags:               0    pixclock:           40000000
+    left_margin:              12    right_margin:             76
+    upper_margin:              4    lower_margin:              5
+    hsync_len:                12    vsync_len:                 2
+    sync:                      0    vmode:                     0
+    rotate:                    3
+EOF
+            exit 0 ;;
     esac
 done
 exit 0
