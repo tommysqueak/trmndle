@@ -77,7 +77,6 @@ The scheduler now operates purely on power state events instead of polling:
 
 ### Configuration Changes
 Edit `bin/config.sh` for:
-- `IMAGE_URI` - URL endpoint for screensaver images
 - Update frequency comes from the TRMNL API's `refresh_rate`; no schedule config
 
 ### Installation/Management via KUAL

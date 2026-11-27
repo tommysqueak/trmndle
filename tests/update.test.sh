@@ -78,11 +78,4 @@ assert_contains "old image kept on empty api response" "OLDDATA" "$(cat "$SB/scr
 stub_count "download attempted with empty url" "curl -fsS" 1
 drop_sandbox
 
-# E: no IMAGE_URI configured - nothing downloaded
-new_sandbox
-write_config "IMAGE_URI="
-out=$( ( cd "$SB" && sh -c '. ./update.sh' ) 2>/dev/null )
-stub_count "no downloads when IMAGE_URI unset" "wget" 0
-drop_sandbox
-
 summary

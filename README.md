@@ -56,7 +56,6 @@ The key requirement is a server that can provide PNG images in your Kindle's exa
 
 2. Edit `onlinescreensaver/bin/config.sh` with your settings:
    - `TRMNL_BASE_URL` / `TRMNL_API_KEY` - Your TRMNL API endpoint and access token (update frequency comes from the API's `refresh_rate`)
-   - `IMAGE_URI` - Your image server URL
    - `SCREENSAVERFILE` - Path to your screensaver image (the default normally works with linkss)
 
    **Important:** Use an editor that supports Unix line endings (e.g., notepad++ on Windows)
@@ -69,9 +68,6 @@ The main settings in `config.sh`:
 # TRMNL API - update frequency comes from the API's refresh_rate
 TRMNL_BASE_URL="https://trmnl.app"
 TRMNL_API_KEY="your-access-token"
-
-# Your image server URL (will receive batteryLevel and isCharging parameters)
-IMAGE_URI="http://192.168.1.100:5000"
 
 # Where to save the downloaded image
 SCREENSAVERFILE=/mnt/us/linkss/screensavers/bg_ss00.png
@@ -97,22 +93,6 @@ Exit SSH and observe behavior. If issues occur, rebooting the Kindle will restor
 **Image Requirements:**
 - PNG format in your device's exact screen resolution
 - "Clean" PNG files work best (test with `eips -f -g image.png` if unsure)
-- Server may optionally handle `batteryLevel` and `isCharging` query parameters
-
-## Home Assistant Integration
-
-For Home Assistant users, the recommended approach is [sibbl's Lovelace Kindle Screensaver](https://github.com/sibbl/hass-lovelace-kindle-screensaver) add-on, which generates properly formatted Kindle images and handles battery status reporting.
-
-**WebHook Configuration (Common Setup Issue):**
-
-When configuring the battery status webhook (per the [How to set up the webhook](https://github.com/sibbl/hass-lovelace-kindle-screensaver?tab=readme-ov-file#how-to-set-up-the-webhook) guide), the naming can be confusing:
-
-1. **In Home Assistant:** Create an automation blueprint with a "Webhook ID" (e.g., `set_kindle_battery_level`)
-2. **In the Screensaver Add-on:** Set `HA_BATTERY_WEBHOOK` parameter to the same name (e.g., `set_kindle_battery_level`)
-
-The `HA_BATTERY_WEBHOOK` config parameter should match exactly what you entered as the "Webhook ID" in your Home Assistant automation blueprint. For multiple Kindles, use `HA_BATTERY_WEBHOOK_2`, `HA_BATTERY_WEBHOOK_3`, etc. This will allow you to display the Kindle's battery status on-screen, looping back through HA and into the presented image on the display.
-
-Your `IMAGE_URI` would typically point to the add-on: `http://your-ha-ip:5000`
 
 ## Device Compatibility
 
@@ -134,7 +114,7 @@ The extension coordinates carefully with Kindle's power management:
 ## Troubleshooting
 
 **No updates occurring:** This is the most common issue during setup and debugging:
-- Verify `IMAGE_URI` is accessible and returns valid PNG images
+- Verify `TRMNL_BASE_URL` is reachable and the API response contains an `image_url`
 - **After making config changes:** Always reboot the Kindle (hold power ~5 seconds → "Reboot"). The Kindle's USB filesystem can become wedged with old/corrupted script versions in memory, especially after mounting USB and editing files. Rebooting ensures changes take effect properly.
 - Check logs after expected update periods (e.g., after 1 hour with 8-minute intervals) - connectivity issues are often hidden in logs with no visible errors
 

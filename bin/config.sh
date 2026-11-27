@@ -2,10 +2,6 @@
 ### ONLINE-SCREENSAVER CONFIGURATION SETTINGS
 #############################################################################
 
-# URL of screensaver image. This really must be in the EXACT resolution of
-# your Kindle's screen (e.g. 600x800 or 758x1024) and really must be PNG.
-IMAGE_URI="http://10.0.1.31:5000"
-
 # folder that holds the screensavers
 SCREENSAVERFOLDER=/mnt/us/linkss/screensavers
 

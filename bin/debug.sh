@@ -90,14 +90,12 @@ network_section () {
         echo "curl not found"
         return
     fi
-    for url in "$IMAGE_URI" "$TRMNL_BASE_URL"; do
-        [ -n "$url" ] || continue
-        if curl -fs -m 5 -o /dev/null "$url" 2>/dev/null; then
-            echo "reachable:   $url"
-        else
-            echo "UNREACHABLE: $url"
-        fi
-    done
+    [ -n "$TRMNL_BASE_URL" ] || return
+    if curl -fs -m 5 -o /dev/null "$TRMNL_BASE_URL" 2>/dev/null; then
+        echo "reachable:   $TRMNL_BASE_URL"
+    else
+        echo "UNREACHABLE: $TRMNL_BASE_URL"
+    fi
 }
 
 trmnl_section () {
