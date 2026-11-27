@@ -22,7 +22,7 @@ section () {
 }
 
 have () {
-    command -v "$1" >/dev/null 2>&1
+    type "$1" >/dev/null 2>&1
 }
 
 device_section () {
@@ -86,13 +86,13 @@ network_section () {
     if have lipc-get-prop; then
         printf 'wifi cmState: %s\n' "$(lipc-get-prop com.lab126.wifid cmState)"
     fi
-    if ! have wget; then
-        echo "wget not found"
+    if ! have curl; then
+        echo "curl not found"
         return
     fi
     for url in "$IMAGE_URI" "$TRMNL_BASE_URL"; do
         [ -n "$url" ] || continue
-        if wget --no-check-certificate -q -T 5 --spider "$url" 2>/dev/null; then
+        if curl -fs -m 5 -o /dev/null "$url" 2>/dev/null; then
             echo "reachable:   $url"
         else
             echo "UNREACHABLE: $url"

@@ -45,11 +45,11 @@ isCharging=`echo "$POWERD_OUTPUT" | awk -F: '/Charging/ {print substr($2,2,lengt
 # Insert Trmnl call here. Trmnl roundtrup - Call Trmnl -> get image url -> continue as usual with that image url 
 IMAGE_URI_WITH_PARAMS="$(get_trmnl_image)"
 
-# Capture wget output and exit code for detailed logging
-WGET_OUTPUT=$(wget --no-check-certificate -q $IMAGE_URI_WITH_PARAMS -O $TMPFILE 2>&1)
-WGET_EXIT_CODE=$?
+# Capture curl output and exit code for detailed logging
+CURL_OUTPUT=$(curl -fsS -m 20 -o "$TMPFILE" "$IMAGE_URI_WITH_PARAMS" 2>&1)
+CURL_EXIT_CODE=$?
 
-if [ $WGET_EXIT_CODE -eq 0 ]; then
+if [ $CURL_EXIT_CODE -eq 0 ]; then
     mv $TMPFILE $SCREENSAVERFILE
     logger "Screen saver image updated successfully from $IMAGE_URI"
     # refresh screen
@@ -59,27 +59,23 @@ if [ $WGET_EXIT_CODE -eq 0 ]; then
         eips -f -g $SCREENSAVERFILE
     fi
 else
-    # Log detailed wget failure information
-    logger "wget failed with exit code $WGET_EXIT_CODE when downloading $IMAGE_URI"
-    echo "$(date): wget failed with exit code $WGET_EXIT_CODE when downloading $IMAGE_URI" >> $LOGFILE
-    
-    # Log wget error output if available
-    if [ -n "$WGET_OUTPUT" ]; then
-        echo "$(date): wget error output: $WGET_OUTPUT" >> $LOGFILE
-        logger "wget error: $WGET_OUTPUT"
+    # Log detailed curl failure information
+    logger "curl failed with exit code $CURL_EXIT_CODE when downloading $IMAGE_URI_WITH_PARAMS"
+    echo "$(date): curl failed with exit code $CURL_EXIT_CODE when downloading $IMAGE_URI_WITH_PARAMS" >> $LOGFILE
+
+    # Log curl error output if available
+    if [ -n "$CURL_OUTPUT" ]; then
+        echo "$(date): curl error output: $CURL_OUTPUT" >> $LOGFILE
+        logger "curl error: $CURL_OUTPUT"
     fi
-    
-    # Log common wget exit code meanings
-    case $WGET_EXIT_CODE in
-        1) echo "$(date): wget error: Generic error code" >> $LOGFILE ;;
-        2) echo "$(date): wget error: Parse error (command line options)" >> $LOGFILE ;;
-        3) echo "$(date): wget error: File I/O error" >> $LOGFILE ;;
-        4) echo "$(date): wget error: Network failure" >> $LOGFILE ;;
-        5) echo "$(date): wget error: SSL verification failure" >> $LOGFILE ;;
-        6) echo "$(date): wget error: Username/password authentication failure" >> $LOGFILE ;;
-        7) echo "$(date): wget error: Protocol errors" >> $LOGFILE ;;
-        8) echo "$(date): wget error: Server issued an error response" >> $LOGFILE ;;
-        *) echo "$(date): wget error: Unknown exit code $WGET_EXIT_CODE" >> $LOGFILE ;;
+
+    # Log common curl exit code meanings
+    case $CURL_EXIT_CODE in
+        6) echo "$(date): curl error: Could not resolve host" >> $LOGFILE ;;
+        7) echo "$(date): curl error: Could not connect to host" >> $LOGFILE ;;
+        22) echo "$(date): curl error: HTTP response >= 400" >> $LOGFILE ;;
+        28) echo "$(date): curl error: Operation timed out" >> $LOGFILE ;;
+        *) echo "$(date): curl error: Unknown exit code $CURL_EXIT_CODE" >> $LOGFILE ;;
     esac
     
     # Clean up temp file if it exists but is incomplete
@@ -87,5 +83,6 @@ else
         rm -f $TMPFILE
         logger "Removed incomplete temporary file $TMPFILE"
     fi
-    
+
+    exit 1
 fi

@@ -21,7 +21,7 @@ EOF
 cat > "$SB/response.json" <<'EOF'
 {"status":0,"image_url":"http:\/\/trmnl.local\/storage\/images\/setup-logo.bmp","filename":"screen-a0f848-1795105057","refresh_rate":900,"reset_firmware":false,"update_firmware":false,"firmware_url":null,"special_function":"sleep","maximum_compatibility":false,"image_url_timeout":30}
 EOF
-export STUB_CURL_BODY_FILE="$SB/response.json"
+export STUB_CURL_API_BODY_FILE="$SB/response.json"
 
 out=$(cd "$SB" && . ./config.sh && . ./utils.sh && . ./trmnl.sh && get_trmnl_image)
 

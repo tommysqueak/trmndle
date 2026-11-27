@@ -1,13 +1,46 @@
 #!/bin/sh
 : "${STUB_LOG:=/dev/null}"
 line="curl"
+url=
+file=
+want_file=0
 for arg in "$@"; do
     line="$line $arg"
+    if [ "$want_file" -eq 1 ]; then
+        file=$arg
+        want_file=0
+        continue
+    fi
+    case "$arg" in
+        -o) want_file=1 ;;
+        -*) ;;
+        *) url=$arg ;;
+    esac
 done
 echo "$line" >> "$STUB_LOG"
-if [ -n "$STUB_CURL_BODY_FILE" ]; then
-    /bin/cat "$STUB_CURL_BODY_FILE"
+[ -n "$url" ] || exit 3
+case "$url" in
+    */api/display)
+        body_file=$STUB_CURL_API_BODY_FILE
+        body=$STUB_CURL_API_BODY
+        code=${STUB_CURL_API_EXIT:-0} ;;
+    *)
+        body_file=$STUB_CURL_BODY_FILE
+        body=$STUB_CURL_BODY
+        code=${STUB_CURL_EXIT:-0} ;;
+esac
+[ "$code" -eq 0 ] || exit "$code"
+if [ -n "$file" ]; then
+    if [ -n "$body_file" ]; then
+        /bin/cat "$body_file" > "$file"
+    else
+        printf '%s' "$body" > "$file"
+    fi
 else
-    printf '%s' "$STUB_CURL_BODY"
+    if [ -n "$body_file" ]; then
+        /bin/cat "$body_file"
+    else
+        printf '%s' "$body"
+    fi
 fi
-exit "${STUB_CURL_EXIT:-0}"
+exit 0

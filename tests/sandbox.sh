@@ -26,12 +26,12 @@ new_sandbox () {
     STUB_LOG="$SB/stubs.log"
     : > "$STUB_LOG"
     export STUB_LOG
-    export STUB_WGET_MODE=ok
-    export STUB_WGET_CODE=
-    export STUB_WGET_BODY=
-    export STUB_WGET_BODY_FILE=
     export STUB_CURL_BODY=
     export STUB_CURL_BODY_FILE=
+    export STUB_CURL_API_BODY=
+    export STUB_CURL_API_BODY_FILE=
+    export STUB_CURL_EXIT=
+    export STUB_CURL_API_EXIT=
     cp -R "$ROOT/tests/stubs/lipc" "$SB/lipc"
     STUB_LIPC="$SB/lipc"
     export STUB_LIPC

@@ -26,26 +26,26 @@ batt_full=0
 Battery logging: On
 EOF
 printf '%s' "$API_JSON" > "$SB/response.json"
-export STUB_CURL_BODY_FILE="$SB/response.json"
-export STUB_WGET_BODY_FILE="$SB/image_body"
+export STUB_CURL_API_BODY_FILE="$SB/response.json"
+export STUB_CURL_BODY_FILE="$SB/image_body"
 
 run_update >/dev/null 2>&1
 
 assert_contains "image written to SCREENSAVERFILE" "PNGDATA-FOR-TEST" "$(cat "$SB/screensavers/bg_ss00.png")"
 if [ -f "$SB/tmp.png" ]; then fail "temp file removed after success"; else pass; fi
-stub_count "trmnl image downloaded" "wget http://image.example/img.png" 1
+stub_count "trmnl image downloaded" "curl -fsS -m 20 -o $SB/tmp.png http://image.example/img.png" 1
 stub_called "screen refreshed via eips" "eips -f -g $SB/screensavers/bg_ss00.png"
-curl_line=$(grep -n "curl" "$STUB_LOG" | head -1 | cut -d: -f1)
-wget_line=$(grep -n "wget" "$STUB_LOG" | head -1 | cut -d: -f1)
-if [ -n "$curl_line" ] && [ -n "$wget_line" ] && [ "$curl_line" -lt "$wget_line" ]; then pass; else fail "api call precedes image download"; fi
+api_line=$(grep -n "curl -sL" "$STUB_LOG" | head -1 | cut -d: -f1)
+img_line=$(grep -n "curl -fsS" "$STUB_LOG" | head -1 | cut -d: -f1)
+if [ -n "$api_line" ] && [ -n "$img_line" ] && [ "$api_line" -lt "$img_line" ]; then pass; else fail "api call precedes image download"; fi
 drop_sandbox
 
 # B: image still written when device is active (no screen refresh)
 new_sandbox
 printf 'PNGDATA-FOR-TEST' > "$SB/image_body"
 printf '%s' "$API_JSON" > "$SB/response.json"
-export STUB_CURL_BODY_FILE="$SB/response.json"
-export STUB_WGET_BODY_FILE="$SB/image_body"
+export STUB_CURL_API_BODY_FILE="$SB/response.json"
+export STUB_CURL_BODY_FILE="$SB/image_body"
 
 run_update >/dev/null 2>&1
 
@@ -57,15 +57,14 @@ drop_sandbox
 new_sandbox
 printf 'OLDDATA' > "$SB/screensavers/bg_ss00.png"
 printf '%s' "$API_JSON" > "$SB/response.json"
-export STUB_CURL_BODY_FILE="$SB/response.json"
-export STUB_WGET_MODE=fail
-export STUB_WGET_CODE=4
+export STUB_CURL_API_BODY_FILE="$SB/response.json"
+export STUB_CURL_EXIT=4
 
 run_update >/dev/null 2>&1
 
-assert_contains "old image kept on wget failure" "OLDDATA" "$(cat "$SB/screensavers/bg_ss00.png")"
+assert_contains "old image kept on curl failure" "OLDDATA" "$(cat "$SB/screensavers/bg_ss00.png")"
 if [ -f "$SB/tmp.png" ]; then fail "incomplete temp file cleaned up"; else pass; fi
-assert_contains "wget exit code logged" "wget failed with exit code 4" "$(cat "$SB/test.log")"
+assert_contains "curl exit code logged" "curl failed with exit code 4" "$(cat "$SB/test.log")"
 drop_sandbox
 
 # D: empty API response - download attempted with empty url, old image kept
@@ -76,7 +75,7 @@ export STUB_CURL_BODY=""
 run_update >/dev/null 2>&1
 
 assert_contains "old image kept on empty api response" "OLDDATA" "$(cat "$SB/screensavers/bg_ss00.png")"
-stub_count "download attempted with empty url" "wget  ->" 1
+stub_count "download attempted with empty url" "curl -fsS" 1
 drop_sandbox
 
 # E: no IMAGE_URI configured - nothing downloaded
