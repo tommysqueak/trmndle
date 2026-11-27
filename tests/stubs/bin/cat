@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ "$1" = "/sys/class/net/wlan0/address" ]; then
+    echo "${STUB_MAC:-AA:BB:CC:DD:EE:FF}"
+    exit 0
+fi
+exec /bin/cat "$@"

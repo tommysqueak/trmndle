@@ -1,0 +1,5 @@
+#!/bin/sh
+: "${STUB_LOG:=/dev/null}"
+echo "powerd_test $*" >> "$STUB_LOG"
+printf '%s\n' "${STUB_POWERD_TEST:-Battery Level: 85% Charging: false}"
+exit 0

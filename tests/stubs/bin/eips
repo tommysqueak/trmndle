@@ -1,0 +1,9 @@
+#!/bin/sh
+: "${STUB_LOG:=/dev/null}"
+echo "eips $*" >> "$STUB_LOG"
+for arg in "$@"; do
+    case "$arg" in
+        -i) echo "xres: ${STUB_EIPS_XRES:-758} yres: ${STUB_EIPS_YRES:-1024}"; exit 0 ;;
+    esac
+done
+exit 0

@@ -1,0 +1,4 @@
+#!/bin/sh
+: "${STUB_LOG:=/dev/null}"
+echo "lipc-wait-event $*" >> "$STUB_LOG"
+exit 0

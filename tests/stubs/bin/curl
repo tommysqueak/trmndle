@@ -1,0 +1,13 @@
+#!/bin/sh
+: "${STUB_LOG:=/dev/null}"
+line="curl"
+for arg in "$@"; do
+    line="$line $arg"
+done
+echo "$line" >> "$STUB_LOG"
+if [ -n "$STUB_CURL_BODY_FILE" ]; then
+    /bin/cat "$STUB_CURL_BODY_FILE"
+else
+    printf '%s' "$STUB_CURL_BODY"
+fi
+exit "${STUB_CURL_EXIT:-0}"

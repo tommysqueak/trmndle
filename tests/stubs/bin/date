@@ -1,0 +1,21 @@
+#!/bin/sh
+if [ -n "$FAKE_CLOCK" ]; then
+    h=${FAKE_CLOCK%%:*}
+    _r=${FAKE_CLOCK#*:}
+    m=${_r%%:*}
+    s=${_r#*:}
+    for arg in "$@"; do
+        case "$arg" in
+            +%H) echo "$h"; exit 0 ;;
+            +%M) echo "$m"; exit 0 ;;
+            +%S) echo "$s"; exit 0 ;;
+            +%-H) echo "${h#0}"; exit 0 ;;
+            +%-M) echo "${m#0}"; exit 0 ;;
+            +%-S) echo "${s#0}"; exit 0 ;;
+            +%H:%M:%S) echo "$h:$m:$s"; exit 0 ;;
+            +%H:%M) echo "$h:$m"; exit 0 ;;
+            +%s) [ -n "$FAKE_EPOCH" ] && { echo "$FAKE_EPOCH"; exit 0; } ;;
+        esac
+    done
+fi
+exec /bin/date "$@"
